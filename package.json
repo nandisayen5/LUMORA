@@ -1,0 +1,8 @@
+{
+  "name": "nando-prompts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Convierte un guion en prompts de imagen con el sistema de Nando (Claude Opus 5.5).",
+  "engines": { "node": ">=20" }
+}

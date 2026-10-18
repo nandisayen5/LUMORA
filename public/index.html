@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lumora · Prompts de cine para tus historias</title>
+<meta name="description" content="Pega tu guion y recibe todos los prompts de imagen de tu historia, con tomas de cine, personajes consistentes y todo en un solo archivo.">
+<meta name="theme-color" content="#05060F">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%238BF0D2'/%3E%3Cstop offset='.5' stop-color='%23B3A4FF'/%3E%3Cstop offset='1' stop-color='%23FFB3D1'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M16 1c1.2 7.6 7.4 13.8 15 15-7.6 1.2-13.8 7.4-15 15C14.8 23.4 8.6 17.2 1 16 8.6 14.8 14.8 8.6 16 1z' fill='url(%23g)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,400..800&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js" defer></script>
+<style>
+@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false}
+:root{
+  --espacio:#05060F;
+  --tinta:#EEF0FF;
+  --niebla:#9AA3C7;
+  --menta:#8BF0D2;
+  --cielo:#7CCBF5;
+  --lavanda:#B3A4FF;
+  --rosa:#FFB3D1;
+  --oro:#F4D48B;
+  --borde:rgba(179,164,255,.16);
+  --arcoiris:linear-gradient(110deg,var(--menta),var(--cielo),var(--lavanda),var(--rosa),var(--menta));
+  --radio-g:28px;
+  --radio-m:16px;
+  --radio-p:999px;
+  --display:"Bricolage Grotesque", system-ui, sans-serif;
+  --texto:"Figtree", system-ui, sans-serif;
+  --suave:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--espacio);color:var(--tinta);font-family:var(--texto);font-size:17px;line-height:1.55;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+::selection{background:var(--lavanda);color:var(--espacio)}
+:focus-visible{outline:2px solid var(--lavanda);outline-offset:3px;border-radius:10px}
+button{font:inherit;cursor:pointer}
+a{color:var(--menta)}
+
+/* ───────── Espacio de fondo (fijo en toda la página) ───────── */
+.universo{position:fixed;inset:0;z-index:-3;overflow:hidden;pointer-events:none;
+  background:radial-gradient(120% 90% at 50% 0%, #10123A 0%, #080A1C 45%, var(--espacio) 100%)}
+.nebulosa{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;mix-blend-mode:screen}
+.nebulosa.n1{width:58vmax;height:58vmax;left:-18vmax;top:-22vmax;background:radial-gradient(circle,rgba(124,108,242,.55),transparent 65%);animation:deriva1 38s ease-in-out infinite alternate}
+.nebulosa.n2{width:50vmax;height:50vmax;right:-16vmax;top:18vh;background:radial-gradient(circle,rgba(63,216,194,.32),transparent 65%);animation:deriva2 44s ease-in-out infinite alternate}
+.nebulosa.n3{width:46vmax;height:46vmax;left:20vw;bottom:-26vmax;background:radial-gradient(circle,rgba(242,140,177,.26),transparent 65%);animation:deriva3 52s ease-in-out infinite alternate}
+@keyframes deriva1{to{transform:translate(12vw,10vh) scale(1.15)}}
+@keyframes deriva2{to{transform:translate(-10vw,-8vh) scale(.9)}}
+@keyframes deriva3{to{transform:translate(-8vw,-12vh) scale(1.2)}}
+#cielo{position:fixed;inset:0;width:100%;height:100%;z-index:-2;pointer-events:none}
+
+.planeta{position:fixed;z-index:-1;pointer-events:none;border-radius:50%}
+.planeta.grande{width:min(38vw,520px);aspect-ratio:1;right:max(-9vw,-130px);bottom:max(-12vw,-170px);
+  background:radial-gradient(circle at 30% 28%, #CFC4FF 0%, #8A78E8 26%, #4B3DA8 55%, #1C1650 82%, #0D0A2A 100%);
+  box-shadow:inset -40px -50px 90px rgba(5,6,15,.9), inset 16px 14px 40px rgba(255,255,255,.12), 0 0 90px rgba(150,130,255,.22);
+  opacity:.62;animation:flotar 16s ease-in-out infinite}
+.planeta.grande::before{content:"";position:absolute;left:-26%;right:-26%;top:43%;height:16%;border-radius:50%;
+  border:2px solid rgba(214,206,255,.45);border-top-color:rgba(214,206,255,.12);transform:rotate(-16deg);box-shadow:0 0 18px rgba(179,164,255,.25)}
+.planeta.luna{width:min(9vw,120px);aspect-ratio:1;left:6vw;top:62vh;
+  background:radial-gradient(circle at 32% 30%, #E6FFF7 0%, #8BF0D2 30%, #2E8C78 70%, #0E2F2A 100%);
+  box-shadow:inset -14px -16px 30px rgba(5,6,15,.85), 0 0 50px rgba(139,240,210,.25);opacity:.45;animation:flotar 12s ease-in-out -4s infinite}
+@keyframes flotar{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-22px) rotate(4deg)}}
+
+/* ───────── Marca ───────── */
+.barra{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:22px clamp(20px,5vw,56px);z-index:2}
+.logo{display:inline-flex;align-items:center;gap:.55em;font-family:var(--display);font-weight:700;font-size:1.35rem;letter-spacing:.02em;color:var(--tinta);text-decoration:none}
+.logo svg{width:26px;height:26px;animation:girarSuave 14s linear infinite;filter:drop-shadow(0 0 10px rgba(179,164,255,.55))}
+@keyframes girarSuave{to{transform:rotate(360deg)}}
+.logo b{font-weight:800;background:var(--arcoiris);background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fluir 10s linear infinite}
+
+/* ───────── Portada ───────── */
+.portada{position:relative;min-height:100svh;display:grid;place-items:center;text-align:center;padding:110px clamp(20px,6vw,96px) 80px}
+.saludo{max-width:1050px;display:flex;flex-direction:column;align-items:center}
+.insignia{display:inline-flex;align-items:center;gap:.5em;padding:.5em 1.1em;border-radius:var(--radio-p);font-size:.92rem;font-weight:600;color:var(--tinta);
+  background:rgba(255,255,255,.05);border:1px solid var(--borde);backdrop-filter:blur(10px);margin-bottom:26px;opacity:0;animation:aparecer 1s .1s forwards}
+.insignia i{width:7px;height:7px;border-radius:50%;background:var(--menta);box-shadow:0 0 10px var(--menta);animation:latir 2.4s ease-in-out infinite}
+@keyframes latir{50%{transform:scale(1.6);opacity:.5}}
+.saludo h1{font-family:var(--display);font-weight:800;font-variation-settings:"wdth" 84;font-size:clamp(3.2rem,10.5vw,8.6rem);line-height:.95;letter-spacing:-.025em;margin:0 0 .28em}
+.saludo h1 span{display:inline-block;opacity:0;transform:translateY(.45em);padding:0 .03em .14em;margin-bottom:-.14em;
+  background:linear-gradient(110deg,#FFFFFF 10%,var(--menta) 35%,var(--lavanda) 55%,var(--rosa) 70%,#FFFFFF 90%);background-size:250% 100%;
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:subir 1s var(--suave) forwards, fluir 12s linear infinite;filter:drop-shadow(0 0 28px rgba(179,164,255,.28))}
+.saludo h1 span:nth-child(2){animation-delay:.14s,0s}
+.saludo h1 span:nth-child(3){animation-delay:.28s,0s}
+@keyframes subir{to{opacity:1;transform:none}}
+@keyframes fluir{to{background-position:250% 0}}
+.saludo p{font-family:var(--display);font-variation-settings:"wdth" 92;font-weight:500;font-size:clamp(1.25rem,2.8vw,2.05rem);line-height:1.2;max-width:26ch;margin:0 0 1.5em;color:var(--niebla);opacity:0;animation:aparecer 1s .6s forwards}
+@keyframes aparecer{to{opacity:1}}
+
+/* Botón Empezar: colores que fluyen + aura que gira */
+.boton-empezar{position:relative;isolation:isolate;display:inline-flex;align-items:center;gap:.7em;border:0;border-radius:var(--radio-p);padding:1.1em 2.5em;
+  font-family:var(--display);font-weight:700;font-size:clamp(1.15rem,2vw,1.4rem);letter-spacing:.01em;color:#0B0B1A;background:transparent;
+  opacity:0;animation:aparecer .9s .95s forwards;transition:transform .45s var(--suave)}
+.boton-empezar::before{content:"";position:absolute;inset:-6px;border-radius:inherit;z-index:-2;
+  background:conic-gradient(from var(--ang),var(--menta),var(--cielo),var(--lavanda),var(--rosa),var(--oro),var(--menta));
+  filter:blur(18px);opacity:.45;animation:girar 5s linear infinite;transition:opacity .5s, filter .5s, inset .5s}
+.boton-empezar::after{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;
+  background:linear-gradient(110deg,var(--menta),var(--cielo),var(--lavanda),var(--rosa),var(--oro),var(--menta));background-size:300% 100%;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.45), inset 0 -10px 24px rgba(11,11,26,.12);animation:fluir 7s linear infinite;transition:filter .5s}
+@keyframes girar{to{--ang:360deg}}
+.boton-empezar .brillo{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none}
+.boton-empezar .brillo::after{content:"";position:absolute;top:-60%;left:-70%;width:45%;height:220%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.75),transparent);transform:rotate(22deg);transition:left .9s var(--suave)}
+.boton-empezar svg{width:1.05em;height:1.05em;transition:transform .45s var(--suave)}
+.boton-empezar:hover{transform:translateY(-4px) scale(1.05)}
+.boton-empezar:hover::before{opacity:1;filter:blur(26px);inset:-10px}
+.boton-empezar:hover::after{filter:saturate(1.25) brightness(1.06)}
+.boton-empezar:hover .brillo::after{left:135%}
+.boton-empezar:hover svg{transform:translateX(5px)}
+.boton-empezar:active{transform:scale(.97)}
+.onda{position:absolute;border-radius:50%;background:rgba(255,255,255,.6);transform:scale(0);animation:onda .75s ease-out forwards;pointer-events:none}
+@keyframes onda{to{transform:scale(4);opacity:0}}
+.chispa{position:fixed;width:7px;height:7px;border-radius:50%;pointer-events:none;z-index:50;animation:chispa 1s cubic-bezier(.1,.7,.3,1) forwards}
+@keyframes chispa{to{transform:translate(var(--dx),var(--dy)) scale(.15);opacity:0}}
+
+.ventajas{display:flex;flex-wrap:wrap;justify-content:center;gap:10px 26px;list-style:none;padding:0;margin:34px 0 0;color:var(--niebla);font-size:.95rem;opacity:0;animation:aparecer 1s 1.3s forwards}
+.ventajas li{display:inline-flex;align-items:center;gap:.5em}
+.ventajas li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--arcoiris);background-size:300% 100%;animation:fluir 6s linear infinite;box-shadow:0 0 10px rgba(179,164,255,.6)}
+
+/* ───────── Taller (pasos) ───────── */
+.taller{display:none;max-width:840px;margin:0 auto;padding:12px 20px 120px}
+.taller.abierto{display:block}
+.paso{position:relative;display:grid;grid-template-columns:56px 1fr;gap:18px;margin-top:30px}
+.paso[hidden]{display:none}
+.marca{position:relative;width:56px;height:56px;border-radius:16px;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:1.45rem;color:var(--tinta);
+  background:rgba(255,255,255,.04);border:1px solid var(--borde);backdrop-filter:blur(10px)}
+.marca::after{content:"";position:absolute;inset:-1px;border-radius:inherit;padding:1px;background:conic-gradient(from var(--ang),transparent 0 60%,var(--lavanda),var(--menta),transparent 100%);
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:girar 4s linear infinite}
+.paso.hecho .marca{color:#0B0B1A;background:var(--arcoiris);background-size:300% 100%;animation:fluir 8s linear infinite;border-color:transparent;box-shadow:0 0 26px rgba(179,164,255,.35)}
+.paso.hecho .marca::after{display:none}
+.panel{position:relative;overflow:hidden;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.08);
+  border-radius:var(--radio-g);padding:clamp(22px,4vw,36px);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:0 30px 80px rgba(0,0,0,.35);animation:entrar .7s var(--suave)}
+.panel::before{content:"";position:absolute;inset:0;pointer-events:none;border-radius:inherit;opacity:0;transition:opacity .4s;
+  background:radial-gradient(420px circle at var(--mx,50%) var(--my,0%),rgba(179,164,255,.12),transparent 60%)}
+.panel:hover::before{opacity:1}
+@keyframes entrar{from{opacity:0;transform:translateY(22px) scale(.985);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+.panel h2{font-family:var(--display);font-weight:800;font-variation-settings:"wdth" 88;font-size:clamp(1.8rem,4.4vw,2.6rem);line-height:1.05;margin:0 0 .3em}
+.panel .ayuda{color:var(--niebla);margin:0 0 1.2em;max-width:60ch}
+textarea,input[type=text],input[type=password]{width:100%;background:rgba(5,6,15,.55);color:var(--tinta);border:1px solid rgba(255,255,255,.1);border-radius:var(--radio-m);padding:16px 18px;font:inherit;font-size:16px;line-height:1.5;transition:border-color .3s, box-shadow .3s}
+textarea::placeholder,input::placeholder{color:#6E7598}
+textarea{min-height:260px;resize:vertical}
+#estilo{min-height:120px}
+textarea:focus,input:focus{outline:none;border-color:rgba(179,164,255,.6);box-shadow:0 0 0 4px rgba(179,164,255,.14), 0 0 40px rgba(179,164,255,.12)}
+.fila{display:flex;flex-wrap:wrap;gap:12px;align-items:center;margin-top:16px}
+.contador{color:var(--niebla);font-size:.95rem}
+.contador strong{color:var(--tinta)}
+
+.boton{position:relative;isolation:isolate;overflow:hidden;border:0;border-radius:var(--radio-p);padding:.9em 1.7em;font-weight:700;color:#0B0B1A;background:transparent;transition:transform .35s var(--suave), opacity .3s}
+.boton::after{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:linear-gradient(110deg,var(--menta),var(--cielo),var(--lavanda),var(--menta));background-size:300% 100%;animation:fluir 9s linear infinite;box-shadow:inset 0 0 0 1px rgba(255,255,255,.35)}
+.boton:hover{transform:translateY(-2px)}
+.boton:hover::after{filter:brightness(1.08) saturate(1.2)}
+.boton:disabled{opacity:.35;cursor:not-allowed;transform:none}
+.boton.suave{color:var(--tinta);border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.03)}
+.boton.suave::after{display:none}
+.boton.suave:hover{border-color:rgba(179,164,255,.5);background:rgba(179,164,255,.08)}
+.subir{display:inline-flex;align-items:center;gap:.5em;cursor:pointer;color:var(--tinta);font-weight:600;border:1px dashed rgba(179,164,255,.4);border-radius:var(--radio-p);padding:.7em 1.3em;transition:background .3s,border-color .3s}
+.subir:hover{background:rgba(179,164,255,.08);border-color:var(--lavanda)}
+.subir input{position:absolute;opacity:0;width:1px;height:1px}
+.zona-soltar.encima textarea{border-color:var(--lavanda);box-shadow:0 0 0 6px rgba(179,164,255,.18)}
+.chips{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}
+.chip{border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.03);color:var(--tinta);border-radius:var(--radio-p);padding:.55em 1.15em;font-weight:600;transition:all .3s var(--suave)}
+.chip:hover{border-color:rgba(179,164,255,.6);transform:translateY(-1px)}
+.chip[aria-pressed=true]{color:#0B0B1A;border-color:transparent;background:var(--arcoiris);background-size:300% 100%;animation:fluir 8s linear infinite;box-shadow:0 0 24px rgba(179,164,255,.35)}
+
+.precio{display:flex;flex-wrap:wrap;align-items:baseline;gap:.2em .6em;margin:.2em 0 .4em}
+.precio .monto{font-family:var(--display);font-weight:800;font-size:clamp(3.6rem,10vw,6rem);line-height:1;
+  background:linear-gradient(110deg,#FFF3D1,var(--oro) 40%,#E9B86A 60%,#FFF3D1);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:fluir 6s linear infinite;filter:drop-shadow(0 0 26px rgba(244,212,139,.25))}
+.precio .detalle{color:var(--niebla);font-size:1.05rem}
+.nota{color:var(--niebla);font-size:.95rem;margin:.4em 0 1.2em}
+.nota strong{color:var(--tinta)}
+.alerta{margin-top:14px;padding:14px 18px;border-radius:var(--radio-m);background:rgba(255,156,156,.08);border:1px solid rgba(255,156,156,.35);color:#FFDCDC}
+.alerta[hidden]{display:none}
+.boton-pagar{font-family:var(--display);font-size:1.15rem;padding:1em 2.2em}
+.boton-pagar::after{background:linear-gradient(110deg,var(--menta),var(--cielo),var(--lavanda),var(--rosa),var(--oro),var(--menta));background-size:300% 100%}
+.codigo-caja{margin-top:22px;border-top:1px solid rgba(255,255,255,.08);padding-top:16px}
+.codigo-caja summary{cursor:pointer;color:var(--niebla);font-weight:600;list-style:none;width:max-content;transition:color .3s}
+.codigo-caja summary:hover{color:var(--tinta)}
+.codigo-caja summary::-webkit-details-marker{display:none}
+.codigo-caja summary::before{content:"+ ";color:var(--lavanda)}
+.codigo-caja[open] summary::before{content:"− "}
+.codigo-caja[open] summary{margin-bottom:12px}
+.enlace-wa{display:inline-flex;align-items:center;gap:.5em;color:var(--menta);font-weight:600;text-decoration:none;border-bottom:1px solid rgba(139,240,210,.35);padding-bottom:2px;transition:color .3s,border-color .3s}
+.enlace-wa:hover{color:var(--tinta);border-color:var(--tinta)}
+
+/* Progreso como cinta de película */
+.estado{font-family:var(--display);font-weight:600;font-size:1.3rem;margin:.2em 0}
+.subestado{color:var(--niebla);margin:0 0 18px}
+.pelicula{display:flex;flex-wrap:wrap;gap:8px;padding:14px;border-radius:var(--radio-m);background:rgba(5,6,15,.5);border:1px solid rgba(255,255,255,.08)}
+.fotograma{width:34px;height:24px;border-radius:6px;border:1px solid rgba(179,164,255,.28);transition:all .6s var(--suave)}
+.fotograma.activo{border-color:var(--lavanda);animation:titilar 1.2s ease-in-out infinite}
+.fotograma.listo{border-color:transparent;background:var(--arcoiris);background-size:300% 100%;animation:fluir 6s linear infinite;box-shadow:0 0 14px rgba(179,164,255,.45)}
+@keyframes titilar{50%{box-shadow:0 0 18px rgba(179,164,255,.7);background:rgba(179,164,255,.15)}}
+.costo{margin-top:12px;color:var(--oro);font-size:.95rem}
+.costo[hidden]{display:none}
+
+.final h2{font-size:clamp(2.4rem,7vw,4rem);background:linear-gradient(110deg,#FFFFFF,var(--menta),var(--lavanda),var(--rosa),#FFFFFF);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:fluir 8s linear infinite}
+.muestra{margin-top:18px;max-height:220px;overflow:auto;font-size:.88rem;line-height:1.5;color:var(--niebla);background:rgba(5,6,15,.55);border:1px solid rgba(255,255,255,.08);border-radius:var(--radio-m);padding:16px;white-space:pre-wrap;word-break:break-word}
+
+.pie{text-align:center;color:#6E7598;font-size:.85rem;padding:30px 20px 50px}
+.pie b{color:var(--niebla);font-weight:600}
+
+@media (max-width:560px){
+  .paso{grid-template-columns:1fr;gap:10px}
+  .marca{width:44px;height:44px;font-size:1.15rem}
+  .planeta.grande{width:62vw;right:-22vw;bottom:-18vw;opacity:.45}
+  .planeta.luna{width:16vw;top:70vh;opacity:.35}
+  .ventajas{gap:8px 18px;font-size:.88rem}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}
+  .saludo h1 span,.saludo p,.boton-empezar,.insignia,.ventajas{opacity:1;transform:none}
+}
+</style>
+</head>
+<body>
+
+<div class="universo" aria-hidden="true">
+  <div class="nebulosa n1"></div><div class="nebulosa n2"></div><div class="nebulosa n3"></div>
+</div>
+<canvas id="cielo" aria-hidden="true"></canvas>
+<div class="planeta grande" aria-hidden="true"></div>
+<div class="planeta luna" aria-hidden="true"></div>
+
+<header class="portada">
+  <div class="barra">
+    <a class="logo" href="/" aria-label="Lumora, inicio">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><defs><linearGradient id="gl" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8BF0D2"/><stop offset=".5" stop-color="#B3A4FF"/><stop offset="1" stop-color="#FFB3D1"/></linearGradient></defs><path d="M16 1c1.2 7.6 7.4 13.8 15 15-7.6 1.2-13.8 7.4-15 15C14.8 23.4 8.6 17.2 1 16 8.6 14.8 14.8 8.6 16 1z" fill="url(#gl)"/></svg>
+      <b>Lumora</b>
+    </a>
+  </div>
+  <div class="saludo">
+    <span class="insignia"><i></i>Prompts de cine para tus historias</span>
+    <h1><span>¿Cómo</span> <span>estás,</span> <span>bro?</span></h1>
+    <p>¿Listo para crear prompts buenísimos para tus historias?</p>
+    <button class="boton-empezar" id="vamos">
+      <span class="brillo" aria-hidden="true"></span>
+      Empezar
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+    <ul class="ventajas">
+      <li>Una toma de cine por cada momento</li>
+      <li>Mismo personaje y misma ropa en cada prompt</li>
+      <li>Todo en un solo archivo</li>
+    </ul>
+  </div>
+</header>
+
+<main class="taller" id="taller">
+
+  <section class="paso" id="paso1" aria-labelledby="t1">
+    <div class="marca" aria-hidden="true">1</div>
+    <div class="panel zona-soltar" id="zona">
+      <h2 id="t1">Pégame tu guion</h2>
+      <p class="ayuda">Pega el texto completo o sube tu Word. Tu historia se usa tal cual, sin cambiar ni una palabra.</p>
+      <textarea id="guion" placeholder="Había una vez..." aria-label="Tu guion"></textarea>
+      <div class="fila">
+        <label class="subir">Subir Word (.docx)<input type="file" id="archivo" accept=".docx,.txt"></label>
+        <span class="contador" id="contador">0 palabras</span>
+      </div>
+      <div class="fila"><button class="boton" id="ir2" disabled>Siguiente: estilo visual</button></div>
+    </div>
+  </section>
+
+  <section class="paso" id="paso2" aria-labelledby="t2" hidden>
+    <div class="marca" aria-hidden="true">2</div>
+    <div class="panel">
+      <h2 id="t2">Pégame tu estilo visual</h2>
+      <p class="ayuda">Elige uno o pega el tuyo. Este estilo va al final de cada prompt.</p>
+      <div class="chips" id="chips">
+        <button class="chip" data-estilo="2D Cinematic Illustration, hand-drawn digital 2D illustration, clean defined ink linework, painted backgrounds, muted earthy palette, warm period light, expressive characters with simplified adult proportions, film still composition">2D cinematográfico</button>
+        <button class="chip" data-estilo="Cartoon 2D, thick black outline, clean lineart, flat colors, cel shading, vector style, low detail background">Cartoon 2D</button>
+        <button class="chip" data-estilo="cinematic realistic film still, natural lighting, 35mm film look, rich detail, true-to-life colors">Realista de cine</button>
+        <button class="chip" data-estilo="soft watercolor illustration, visible paper grain, gentle washes, fine ink outlines, muted natural palette">Acuarela</button>
+      </div>
+      <textarea id="estilo" placeholder="Ejemplo: 2D Cinematic Illustration, clean ink linework, painted backgrounds..." aria-label="Tu estilo visual"></textarea>
+      <div class="fila"><button class="boton" id="ir3" disabled>Siguiente: ver precio</button></div>
+    </div>
+  </section>
+
+  <section class="paso" id="paso3" aria-labelledby="t3" hidden>
+    <div class="marca" aria-hidden="true">3</div>
+    <div class="panel">
+      <h2 id="t3">Esto cuesta tu historia</h2>
+      <div class="precio"><span class="monto" id="monto">$0.00</span><span class="detalle" id="detalle"></span></div>
+      <p class="nota">El precio sale de contar las palabras de tu guion. Hasta aquí no se ha gastado nada.</p>
+      <div id="zonaPago" hidden>
+        <div class="fila"><button class="boton boton-pagar" id="pagar">Pagar con Mercado Pago</button></div>
+        <p class="nota" id="notaSoles"></p>
+      </div>
+      <details class="codigo-caja" id="cajaCodigo">
+        <summary>¿Tienes un código de acceso?</summary>
+        <input type="password" id="codigo" placeholder="Tu código de acceso" aria-label="Código de acceso" autocomplete="off">
+        <div class="fila"><button class="boton" id="crear">Crear mis prompts</button></div>
+      </details>
+      <div class="fila"><a class="enlace-wa" id="whatsapp" href="/api/whatsapp" hidden target="_blank" rel="noopener">¿Dudas? Escríbenos por WhatsApp</a></div>
+      <p class="alerta" id="alerta3" hidden></p>
+    </div>
+  </section>
+
+  <section class="paso" id="paso4" aria-labelledby="t4" hidden>
+    <div class="marca" aria-hidden="true">4</div>
+    <div class="panel">
+      <h2 id="t4">Creando tus prompts</h2>
+      <p class="estado" id="estado" aria-live="polite">Preparando todo…</p>
+      <p class="subestado">No cierres esta pestaña. Si se corta, abre la página otra vez y sigue donde quedó.</p>
+      <div class="pelicula" id="pelicula" aria-hidden="true"></div>
+      <p class="costo" id="costo" hidden></p>
+      <p class="alerta" id="alerta4" hidden></p>
+      <div class="fila" id="filaReintento" hidden><button class="boton" id="reintentar">Reintentar desde donde quedó</button></div>
+      <div class="fila" id="filaPago" hidden>
+        <button class="boton" id="yaPague">Ya pagué, revisar</button>
+        <button class="boton suave" id="pagarOtraVez">Pagar de nuevo</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="paso final" id="paso5" aria-labelledby="t5" hidden>
+    <div class="marca" aria-hidden="true">5</div>
+    <div class="panel">
+      <h2 id="t5">¡Listo, bro!</h2>
+      <p class="ayuda" id="resumen"></p>
+      <div class="fila">
+        <button class="boton" id="bajarPrompts">Descargar prompts (.md)</button>
+        <button class="boton suave" id="copiar">Copiar todo</button>
+        <button class="boton suave" id="bajarFichas">Descargar fichas</button>
+        <button class="boton suave" id="bajarDesglose">Descargar desglose</button>
+      </div>
+      <div class="muestra" id="muestra"></div>
+      <div class="fila"><button class="boton suave" id="nueva">Crear otra historia</button></div>
+    </div>
+  </section>
+</main>
+
+<footer class="pie"><b>Lumora</b> · Tus prompts se crean con Claude.</footer>
+
+<script>
+(() => {
+'use strict';
+const $ = (id) => document.getElementById(id);
+const LOTE = 50;
+const CLAVE = 'np_trabajo_v1';
+let CONFIG = { precioMinuto: 1.2, tipoCambio: 3.46, moneda: 'PEN', minimoMinutos: 10, maximoMinutos: 40, palabrasPorMinuto: 150, whatsapp: false, pagos: false };
+let T = null; // trabajo en curso
+const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const guardar = () => { try { localStorage.setItem(CLAVE, JSON.stringify(T)); } catch (e) {} };
+const cargar = () => { try { return JSON.parse(localStorage.getItem(CLAVE) || 'null'); } catch (e) { return null; } };
+const borrar = () => { try { localStorage.removeItem(CLAVE); } catch (e) {} };
+const palabras = (t) => (String(t || '').trim().match(/\S+/g) || []).length;
+const miles = (n) => n.toLocaleString('es-PE');
+const dolares = (n) => `$${n.toFixed(2)}`;
+const nuevoTrabajo = (extra) => ({ codigo: '', ref: null, pagado: false, dueno: false, guion: '', estilo: '',
+  partes: null, parte: 0, frases: [], fichas: null, fichas_md: '', bitacora: '', bloques: {}, costo: 0, terminado: false, ...extra });
+// Permiso para el servidor: el pago (amarrado a este guion) o un código de acceso.
+const cred = () => (T.ref ? { ref: T.ref } : { codigo: T.codigo });
+
+/* ── El espacio: estrellas en tres profundidades, polvo de colores y estrellas fugaces ── */
+(() => {
+  const c = $('cielo'), x = c.getContext('2d');
+  const TONOS = ['255,255,255', '214,226,255', '205,196,255', '190,255,236', '255,222,238'];
+  let W = 0, H = 0, D = 1, fugaces = [];
+  const estrellas = [], polvo = [];
+  let mx = 0, my = 0, tx = 0, ty = 0;
+  const medir = () => {
+    D = Math.min(devicePixelRatio || 1, 2);
+    W = c.width = innerWidth * D; H = c.height = innerHeight * D;
+  };
+  medir(); addEventListener('resize', medir);
+  const cuantas = Math.min(320, Math.round(innerWidth * innerHeight / 5200));
+  for (let i = 0; i < cuantas; i++) {
+    const z = Math.random() ** 1.6 * .9 + .1;
+    estrellas.push({ x: Math.random(), y: Math.random(), z, r: Math.random() * 1.1 + .35, t: TONOS[(Math.random() * TONOS.length) | 0], f: Math.random() * 6.3, v: Math.random() * 1.4 + .4 });
+  }
+  for (let i = 0; i < 16; i++) {
+    polvo.push({ x: Math.random(), y: Math.random(), r: Math.random() * 3 + 1.5, t: TONOS[2 + (i % 3)], v: Math.random() * .00012 + .00004, f: Math.random() * 6.3 });
+  }
+  addEventListener('pointermove', (e) => { tx = e.clientX / innerWidth - .5; ty = e.clientY / innerHeight - .5; });
+  const dibujar = (ms) => {
+    const t = ms / 1000;
+    x.clearRect(0, 0, W, H);
+    mx += (tx - mx) * .035; my += (ty - my) * .035;
+    for (const s of estrellas) {
+      s.x -= .000045 * s.z; if (s.x < -.01) { s.x = 1.01; s.y = Math.random(); }
+      const px = (s.x - mx * .035 * s.z) * W, py = (s.y - my * .035 * s.z) * H;
+      const brillo = .45 + .55 * Math.abs(Math.sin(t * s.v + s.f));
+      const r = s.r * D * (.6 + s.z * .9);
+      x.beginPath(); x.arc(px, py, r, 0, 6.283);
+      x.fillStyle = `rgba(${s.t},${(brillo * (.35 + s.z * .65)).toFixed(3)})`; x.fill();
+      if (s.z > .82) {
+        x.beginPath(); x.arc(px, py, r * 4, 0, 6.283);
+        x.fillStyle = `rgba(${s.t},${(brillo * .07).toFixed(3)})`; x.fill();
+      }
+    }
+    for (const p of polvo) {
+      p.y -= p.v; p.x += Math.sin(t * .3 + p.f) * .00008; if (p.y < -.05) { p.y = 1.05; p.x = Math.random(); }
+      const px = (p.x - mx * .06) * W, py = (p.y - my * .06) * H, r = p.r * D;
+      const g = x.createRadialGradient(px, py, 0, px, py, r * 5);
+      g.addColorStop(0, `rgba(${p.t},.28)`); g.addColorStop(1, `rgba(${p.t},0)`);
+      x.fillStyle = g; x.beginPath(); x.arc(px, py, r * 5, 0, 6.283); x.fill();
+    }
+    if (fugaces.length < 2 && Math.random() < .006) {
+      const v = (7 + Math.random() * 6) * D;
+      fugaces.push({ x: W * (.35 + Math.random() * .75), y: H * Math.random() * .45, vx: -v, vy: v * (.32 + Math.random() * .2), vida: 1, t: TONOS[(Math.random() * TONOS.length) | 0] });
+    }
+    fugaces = fugaces.filter((f) => f.vida > 0);
+    for (const f of fugaces) {
+      f.x += f.vx; f.y += f.vy; f.vida -= .014;
+      const cola = 16, gx = f.x - f.vx * cola, gy = f.y - f.vy * cola;
+      const g = x.createLinearGradient(f.x, f.y, gx, gy);
+      g.addColorStop(0, `rgba(${f.t},${(.9 * Math.max(f.vida, 0)).toFixed(3)})`); g.addColorStop(1, `rgba(${f.t},0)`);
+      x.strokeStyle = g; x.lineWidth = 1.6 * D; x.lineCap = 'round';
+      x.beginPath(); x.moveTo(f.x, f.y); x.lineTo(gx, gy); x.stroke();
+      x.beginPath(); x.arc(f.x, f.y, 1.8 * D, 0, 6.283); x.fillStyle = `rgba(255,255,255,${Math.max(f.vida, 0).toFixed(3)})`; x.fill();
+    }
+    if (!quieto) requestAnimationFrame(dibujar);
+  };
+  requestAnimationFrame(dibujar);
+})();
+
+/* Luz que sigue al mouse dentro de los paneles */
+document.addEventListener('pointermove', (e) => {
+  const p = e.target.closest && e.target.closest('.panel');
+  if (!p) return;
+  const r = p.getBoundingClientRect();
+  p.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+  p.style.setProperty('--my', (e.clientY - r.top) + 'px');
+});
+
+/* ── Botón Empezar ── */
+const COLORES_CHISPA = ['#8BF0D2', '#7CCBF5', '#B3A4FF', '#FFB3D1', '#F4D48B'];
+$('vamos').addEventListener('click', (e) => {
+  const b = e.currentTarget, r = b.getBoundingClientRect();
+  const cxp = e.clientX || r.left + r.width / 2, cyp = e.clientY || r.top + r.height / 2;
+  const o = document.createElement('span'); const s = Math.max(r.width, r.height);
+  o.className = 'onda'; o.style.width = o.style.height = s + 'px';
+  o.style.left = (cxp - r.left - s / 2) + 'px'; o.style.top = (cyp - r.top - s / 2) + 'px';
+  b.appendChild(o); setTimeout(() => o.remove(), 750);
+  for (let i = 0; i < 28; i++) {
+    const p = document.createElement('span'); p.className = 'chispa';
+    const col = COLORES_CHISPA[i % COLORES_CHISPA.length];
+    const ang = Math.random() * Math.PI * 2, dist = 70 + Math.random() * 140;
+    p.style.background = col; p.style.boxShadow = `0 0 12px ${col}`;
+    p.style.left = cxp + 'px'; p.style.top = cyp + 'px';
+    p.style.setProperty('--dx', Math.cos(ang) * dist + 'px'); p.style.setProperty('--dy', Math.sin(ang) * dist + 'px');
+    document.body.appendChild(p); setTimeout(() => p.remove(), 1000);
+  }
+  abrirTaller();
+});
+
+function abrirTaller() {
+  $('taller').classList.add('abierto');
+  setTimeout(() => { $('paso1').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('guion').focus({ preventScroll: true }); }, 280);
+}
+
+/* ── Paso 1: guion ── */
+function minutosDe(n) { return Math.max(CONFIG.minimoMinutos, Math.ceil(n / CONFIG.palabrasPorMinuto)); }
+function actualizarContador() {
+  const n = palabras($('guion').value);
+  const min = Math.ceil(n / CONFIG.palabrasPorMinuto);
+  $('contador').innerHTML = n ? `<strong>${miles(n)}</strong> palabras, unos <strong>${min || 1}</strong> minutos de historia` : '0 palabras';
+  $('ir2').disabled = n < 30;
+}
+$('guion').addEventListener('input', actualizarContador);
+
+async function leerArchivo(f) {
+  if (!f) return;
+  if (f.name.toLowerCase().endsWith('.txt')) { $('guion').value = await f.text(); actualizarContador(); return; }
+  if (!window.mammoth) { alert('El lector de Word todavía está cargando. Intenta en un segundo.'); return; }
+  try {
+    const r = await window.mammoth.extractRawText({ arrayBuffer: await f.arrayBuffer() });
+    $('guion').value = r.value.replace(/\n{3,}/g, '\n\n').trim();
+    actualizarContador();
+  } catch (e) { alert('No se pudo leer ese Word. Prueba copiando y pegando el texto.'); }
+}
+$('archivo').addEventListener('change', (e) => leerArchivo(e.target.files[0]));
+const zona = $('zona');
+['dragenter', 'dragover'].forEach((t) => zona.addEventListener(t, (e) => { e.preventDefault(); zona.classList.add('encima'); }));
+['dragleave', 'drop'].forEach((t) => zona.addEventListener(t, () => zona.classList.remove('encima')));
+zona.addEventListener('drop', (e) => { e.preventDefault(); leerArchivo(e.dataTransfer.files[0]); });
+
+function mostrar(id) {
+  const el = $(id); el.hidden = false;
+  setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+}
+$('ir2').addEventListener('click', () => { $('paso1').classList.add('hecho'); mostrar('paso2'); });
+
+/* ── Paso 2: estilo ── */
+const chips = [...document.querySelectorAll('.chip')];
+chips.forEach((c) => c.addEventListener('click', () => {
+  chips.forEach((o) => o.setAttribute('aria-pressed', o === c ? 'true' : 'false'));
+  $('estilo').value = c.dataset.estilo; $('ir3').disabled = false;
+}));
+chips.forEach((c) => c.setAttribute('aria-pressed', 'false'));
+$('estilo').addEventListener('input', () => {
+  $('ir3').disabled = !$('estilo').value.trim();
+  chips.forEach((o) => o.setAttribute('aria-pressed', o.dataset.estilo === $('estilo').value ? 'true' : 'false'));
+});
+$('ir3').addEventListener('click', async () => { await configLista; $('paso2').classList.add('hecho'); calcularPrecio(); mostrar('paso3'); });
+
+/* ── Paso 3: precio (en dólares; Mercado Pago cobra el equivalente en soles) ── */
+function calcularPrecio() {
+  const n = palabras($('guion').value);
+  const min = minutosDe(n);
+  const usd = Math.round(min * CONFIG.precioMinuto * 100) / 100;
+  const soles = Math.ceil(usd * CONFIG.tipoCambio - 1e-9);
+  $('monto').textContent = dolares(usd);
+  const real = Math.ceil(n / CONFIG.palabrasPorMinuto) || 1;
+  $('detalle').textContent = real < CONFIG.minimoMinutos
+    ? `${real} min de historia (se cobra el mínimo de ${CONFIG.minimoMinutos} min)`
+    : `${min} minutos de historia, ${dolares(CONFIG.precioMinuto)} por minuto`;
+  $('notaSoles').innerHTML = `Pagas seguro dentro de Mercado Pago. Como es Perú, se cobra en soles: <strong>S/ ${soles.toFixed(2)}</strong>. Al terminar vuelves aquí y tus prompts empiezan solos.`;
+  const muyLarga = real > CONFIG.maximoMinutos;
+  $('crear').disabled = muyLarga;
+  $('pagar').disabled = muyLarga;
+  avisar('alerta3', muyLarga ? `Tu guion pasa de ${CONFIG.maximoMinutos} minutos. Divídelo en dos partes y crea cada una por separado.` : '');
+}
+function avisar(id, txt) { $(id).textContent = txt; $(id).hidden = !txt; }
+
+$('crear').addEventListener('click', async () => {
+  const codigo = $('codigo').value.trim();
+  if (!codigo) return avisar('alerta3', 'Escribe tu código de acceso.');
+  $('crear').disabled = true;
+  try {
+    const r = await api('verificar', { codigo });
+    T = nuevoTrabajo({ codigo, dueno: !!r.dueno, guion: $('guion').value.trim(), estilo: $('estilo').value.trim() });
+    guardar();
+    $('paso3').classList.add('hecho');
+    mostrar('paso4');
+    trabajar();
+  } catch (e) {
+    avisar('alerta3', e.message);
+    $('crear').disabled = false;
+  }
+});
+
+/* ── Pago con Mercado Pago ── */
+$('pagar').addEventListener('click', async () => {
+  avisar('alerta3', '');
+  $('pagar').disabled = true;
+  const guion = $('guion').value.trim(), estilo = $('estilo').value.trim();
+  try {
+    const r = await api('pagar', { guion });
+    T = nuevoTrabajo({ ref: r.ref, guion, estilo });
+    guardar();
+    $('pagar').textContent = 'Abriendo Mercado Pago…';
+    location.href = r.url;
+  } catch (e) {
+    avisar('alerta3', e.message);
+    $('pagar').disabled = false;
+  }
+});
+
+async function revisarMiPago() {
+  $('paso4').hidden = false;
+  $('filaReintento').hidden = true; $('filaPago').hidden = true; avisar('alerta4', '');
+  estado('Revisando tu pago…');
+  setTimeout(() => $('paso4').scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+  try {
+    const r = await api('pago', { ref: T.ref, guion: T.guion });
+    if (r.estado === 'pagado') {
+      T.pagado = true; guardar();
+      estado('¡Pago recibido! Empezamos');
+      trabajar();
+      return;
+    }
+    if (r.estado === 'pendiente') {
+      estado('Tu pago está en proceso');
+      avisar('alerta4', 'Mercado Pago todavía está aprobando tu pago. Cuando te llegue la confirmación, toca "Ya pagué, revisar".');
+    } else {
+      estado('Todavía no vemos tu pago');
+      avisar('alerta4', 'Si cancelaste, puedes pagar de nuevo. Si ya pagaste, espera un minuto y toca "Ya pagué, revisar".');
+    }
+  } catch (e) {
+    estado('No pudimos revisar tu pago');
+    avisar('alerta4', e.message);
+  }
+  $('filaPago').hidden = false;
+}
+$('yaPague').addEventListener('click', revisarMiPago);
+$('pagarOtraVez').addEventListener('click', () => {
+  $('paso4').hidden = true; $('filaPago').hidden = true;
+  $('paso3').classList.remove('hecho');
+  $('pagar').disabled = false; $('pagar').textContent = 'Pagar con Mercado Pago';
+  calcularPrecio(); mostrar('paso3');
+});
+
+/* ── Llamadas al servidor ── */
+async function api(nombre, datos) {
+  let r;
+  try {
+    r = await fetch('/api/' + nombre, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(datos) });
+  } catch (e) { const err = new Error('Se cortó la conexión.'); err.reintentable = true; throw err; }
+  let j = {};
+  try { j = await r.json(); } catch (e) {}
+  if (!r.ok) {
+    const err = new Error(j.error || (r.status === 504 ? 'El servidor tardó demasiado en responder.' : 'Error del servidor (' + r.status + ').'));
+    err.reintentable = r.status >= 500 || r.status === 429;
+    err.status = r.status;
+    throw err;
+  }
+  return j;
+}
+
+/* ── Paso 4: el trabajo, en orden ── */
+function dividirEnPartes(texto) {
+  const parrafos = texto.split(/\n+/).map((p) => p.trim()).filter(Boolean);
+  const partes = []; let actual = []; let n = 0;
+  const cerrar = () => { if (actual.length) { partes.push(actual.join('\n\n')); actual = []; n = 0; } };
+  for (const p of parrafos) {
+    const k = palabras(p);
+    if (k > 1800) {
+      cerrar();
+      const oraciones = p.split(/(?<=[.!?…])\s+/); let trozo = []; let m = 0;
+      for (const o of oraciones) { trozo.push(o); m += palabras(o); if (m >= 800) { partes.push(trozo.join(' ')); trozo = []; m = 0; } }
+      if (trozo.length) partes.push(trozo.join(' '));
+      continue;
+    }
+    actual.push(p); n += k;
+    if (n >= 800) cerrar();
+  }
+  cerrar();
+  return partes;
+}
+function rangos(total) { const r = []; for (let d = 1; d <= total; d += LOTE) r.push([d, Math.min(total, d + LOTE - 1)]); return r; }
+function estado(txt) { $('estado').textContent = txt; }
+function sumarCosto(r) { if (r && typeof r.costo === 'number') { T.costo += r.costo; } if (T.dueno) { $('costo').hidden = false; $('costo').textContent = `Gasto de API hasta ahora: $${T.costo.toFixed(2)} (solo lo ves tú)`; } }
+
+function pintarPelicula() {
+  const total = T.frases.length ? rangos(T.frases.length).length : 0;
+  const pel = $('pelicula'); pel.innerHTML = '';
+  for (let i = 0; i < total; i++) {
+    const d = i * LOTE + 1; const f = document.createElement('div');
+    f.className = 'fotograma' + (T.bloques[d] ? ' listo' : '');
+    pel.appendChild(f);
+  }
+  const primero = [...pel.children].find((f) => !f.classList.contains('listo'));
+  if (primero && T.fichas) primero.classList.add('activo');
+}
+
+async function conReintento(fn) {
+  try { return await fn(); }
+  catch (e) { if (!e.reintentable) throw e; await new Promise((r) => setTimeout(r, 3000)); return await fn(); }
+}
+
+async function hacerLote(d, h) {
+  const r = await api('lote', { ...cred(), guion: T.guion, frases: T.frases, fichas: T.fichas, bitacora: T.bitacora, desde: d, hasta: h, estilo: T.estilo });
+  sumarCosto(r);
+  T.fichas = r.fichas; T.fichas_md = r.fichas_md; T.bitacora = r.bitacora;
+  return r.lineas;
+}
+
+let trabajando = false;
+async function trabajar() {
+  if (trabajando) return;
+  trabajando = true;
+  avisar('alerta4', ''); $('filaReintento').hidden = true; $('filaPago').hidden = true;
+  try {
+    // 1. Desglose (por partes, numeración continua)
+    if (!T.partes) { T.partes = dividirEnPartes(T.guion); guardar(); }
+    while (T.parte < T.partes.length) {
+      estado(`Desglosando tu guion (parte ${T.parte + 1} de ${T.partes.length})`);
+      const r = await conReintento(() => api('desglose', { ...cred(), guion: T.guion, texto: T.partes[T.parte], inicio: T.frases.length + 1 }));
+      sumarCosto(r);
+      T.frases.push(...r.frases); T.parte++; guardar();
+    }
+    // 2. Fichas maestras
+    if (!T.fichas) {
+      estado(`Creando las fichas de personajes y lugares (${miles(T.frases.length)} momentos)`);
+      pintarPelicula();
+      const pedir = (rapido) => api('fichas', { ...cred(), guion: T.guion, frases: T.frases, estilo: T.estilo, rapido });
+      let r;
+      try { r = await pedir(false); }
+      catch (e) { if (!e.reintentable) throw e; r = await pedir(true); }
+      sumarCosto(r);
+      T.fichas = r.fichas; T.fichas_md = r.fichas_md; T.bitacora = r.bitacora; guardar();
+    }
+    // 3. Lotes de 50, en orden
+    const lista = rangos(T.frases.length);
+    pintarPelicula();
+    for (let i = 0; i < lista.length; i++) {
+      const [d, h] = lista[i];
+      if (T.bloques[d]) continue;
+      estado(`Lote ${i + 1} de ${lista.length}: números ${d} al ${h}`);
+      let lineas;
+      try {
+        lineas = await conReintento(() => hacerLote(d, h));
+      } catch (e) {
+        if (!e.reintentable && e.status !== 500) throw e;
+        // Si un lote de 50 no alcanza a terminar, se hace en dos mitades, en orden.
+        const m = Math.floor((d + h) / 2);
+        estado(`Lote ${i + 1} de ${lista.length}: números ${d} al ${m}`);
+        const a = await conReintento(() => hacerLote(d, m));
+        estado(`Lote ${i + 1} de ${lista.length}: números ${m + 1} al ${h}`);
+        const b = await conReintento(() => hacerLote(m + 1, h));
+        lineas = a.concat(b);
+      }
+      T.bloques[d] = lineas; guardar(); pintarPelicula();
+    }
+    T.terminado = true; guardar();
+    terminar();
+  } catch (e) {
+    avisar('alerta4', (e.status === 401 && !T.ref ? 'Tu código de acceso ya no es válido. ' : '') + e.message);
+    $('filaReintento').hidden = false;
+    estado('Se detuvo un momento');
+  } finally {
+    trabajando = false;
+  }
+}
+$('reintentar').addEventListener('click', trabajar);
+
+/* ── Paso 5: entrega ── */
+function todoElMd() {
+  return rangos(T.frases.length).map(([d]) => (T.bloques[d] || []).join('\n\n')).join('\n\n') + '\n';
+}
+function bajar(nombre, texto) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([texto], { type: 'text/markdown;charset=utf-8' }));
+  a.download = nombre; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function terminar() {
+  $('paso4').classList.add('hecho');
+  const total = T.frases.length;
+  const lineas = todoElMd().split('\n').filter((l) => l.startsWith('_ ')).length;
+  $('resumen').textContent = `${miles(lineas)} prompts, uno por cada momento de tu historia, del 1 al ${miles(total)}. Todos en un solo archivo, en orden y listos para copiar.`;
+  $('muestra').textContent = (T.bloques[1] || []).slice(0, 2).join('\n\n');
+  mostrar('paso5');
+}
+$('bajarPrompts').addEventListener('click', () => bajar(`PROMPTS_1-${T.frases.length}.md`, todoElMd()));
+$('bajarFichas').addEventListener('click', () => bajar('FICHAS_MAESTRAS.md', T.fichas_md || ''));
+$('bajarDesglose').addEventListener('click', () => bajar('DESGLOSE.md', T.frases.map((f, i) => `${i + 1}. "${f}"`).join('\n') + '\n'));
+$('copiar').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(todoElMd()); $('copiar').textContent = 'Copiado'; }
+  catch (e) { $('copiar').textContent = 'No se pudo copiar'; }
+  setTimeout(() => { $('copiar').textContent = 'Copiar todo'; }, 2000);
+});
+$('nueva').addEventListener('click', () => {
+  if (T && !T.terminado && (T.pagado || T.codigo) && !confirm('Tu historia todavía no termina. Si empiezas otra, se pierde esta. ¿Seguro?')) return;
+  borrar(); location.href = location.pathname;
+});
+
+/* ── Inicio ── */
+const configLista = fetch('/api/config').then((r) => r.json()).then((c) => {
+  CONFIG = { ...CONFIG, ...c };
+}).catch(() => {}).then(() => {
+  // Con pagos activos se muestra el botón de pagar; si no, solo la caja del código.
+  $('whatsapp').hidden = !CONFIG.whatsapp;
+  $('zonaPago').hidden = !CONFIG.pagos;
+  $('cajaCodigo').open = !CONFIG.pagos;
+  if (!$('paso3').hidden) calcularPrecio();
+});
+
+// Al volver de Mercado Pago la dirección trae datos del pago: se limpian para que no estorben.
+const params = new URLSearchParams(location.search);
+const refVuelta = params.get('external_reference');
+if ([...params.keys()].length) history.replaceState(null, '', location.pathname);
+
+const previo = cargar();
+if (refVuelta && (!previo || previo.ref !== refVuelta)) {
+  alert('Volviste de Mercado Pago, pero tu historia no está guardada en este navegador. Ábrela en el mismo navegador donde pagaste o escríbenos por WhatsApp con este número de pedido: ' + refVuelta);
+}
+if (previo && previo.guion) {
+  T = nuevoTrabajo(previo);
+  $('guion').value = T.guion; $('estilo').value = T.estilo; actualizarContador();
+  $('taller').classList.add('abierto');
+  ['paso1', 'paso2', 'paso3'].forEach((p) => { $(p).hidden = false; $(p).classList.add('hecho'); });
+  if (T.ref && !T.pagado) { configLista.then(revisarMiPago); }
+  else if (T.terminado) { $('paso4').hidden = false; pintarPelicula(); terminar(); }
+  else {
+    $('paso4').hidden = false; pintarPelicula();
+    estado('Tienes una historia a medias');
+    avisar('alerta4', 'Quedó una historia sin terminar. Toca el botón para seguir donde quedó.');
+    $('filaReintento').hidden = false;
+    setTimeout(() => $('paso4').scrollIntoView({ behavior: 'smooth' }), 300);
+  }
+}
+})();
+</script>
+</body>
+</html>
